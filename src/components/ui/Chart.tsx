@@ -9,9 +9,7 @@ import {
   LineChart,
   BarChart,
   PieChart,
-  ProgressChart,
-  ContributionGraph,
-  StackedBarChart
+  ProgressChart
 } from 'react-native-chart-kit';
 
 const { width } = Dimensions.get('window');

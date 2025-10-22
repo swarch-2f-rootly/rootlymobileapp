@@ -21,13 +21,13 @@ export const authService = {
     return response.data;
   },
 
-  async getProfile(): Promise<User> {
-    const response = await apiClient.get('/api/v1/auth/profile');
+  async getProfile(userId: string): Promise<User> {
+    const response = await apiClient.get(`/api/v1/users/${userId}`);
     return response.data;
   },
 
-  async updateProfile(data: Partial<User>): Promise<User> {
-    const response = await apiClient.put('/api/v1/auth/profile', data);
+  async updateProfile(userId: string, data: Partial<User>): Promise<User> {
+    const response = await apiClient.put(`/api/v1/users/${userId}`, data);
     return response.data;
   },
 };

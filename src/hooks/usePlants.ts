@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { plantsService } from '../lib/api/plantsService';
-import { Plant, PlantCreate, PlantUpdate } from '../types/plants';
+import { PlantCreate, PlantUpdate } from '../types/plants';
 
 export const usePlants = () => {
   return useQuery({
@@ -49,6 +49,14 @@ export const useDeletePlant = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plants'] });
     },
+  });
+};
+
+export const usePlantDevices = (plantId: string) => {
+  return useQuery({
+    queryKey: ['plant-devices', plantId],
+    queryFn: () => plantsService.getPlantDevices(plantId),
+    enabled: !!plantId,
   });
 };
 

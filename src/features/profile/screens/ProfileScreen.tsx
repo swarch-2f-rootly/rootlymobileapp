@@ -8,6 +8,7 @@ import {
   Alert,
   TouchableOpacity,
   Modal,
+  Image,
 } from 'react-native';
 import { useAuthStore } from '../../../stores/authStore';
 import { useAuth } from '../../../hooks/useAuth';
@@ -15,13 +16,18 @@ import { Card } from '../../../components/ui/Card';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Loading } from '../../../components/ui/Loading';
+import { launchImageLibrary, launchCamera, ImagePickerResponse, MediaType } from 'react-native-image-picker';
+import { useUploadProfilePhoto, useDeleteProfilePhoto } from '../../../hooks/useFile';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 const ProfileScreen: React.FC = () => {
   const { user } = useAuthStore();
   const { logout, isLoggingOut } = useAuth();
+  const uploadPhotoMutation = useUploadProfilePhoto();
+  const deletePhotoMutation = useDeleteProfilePhoto();
 
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [editForm, setEditForm] = useState({
     first_name: '',
     last_name: '',
@@ -30,6 +36,8 @@ const ProfileScreen: React.FC = () => {
     first_name: '',
     last_name: '',
   });
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   const handleLogout = () => {
     Alert.alert(
@@ -45,6 +53,112 @@ const ProfileScreen: React.FC = () => {
           style: 'destructive',
           onPress: logout,
         },
+      ]
+    );
+  };
+
+  // Photo handling functions
+  const selectPhotoFromGallery = () => {
+    const options = {
+      mediaType: 'photo' as MediaType,
+      quality: 0.8,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    };
+
+    launchImageLibrary(options, (response: ImagePickerResponse) => {
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Error', 'Error al seleccionar la imagen: ' + response.errorMessage);
+        return;
+      }
+      if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        if (asset.uri) {
+          setSelectedPhoto(asset.uri);
+          setPhotoPreview(asset.uri);
+        }
+      }
+    });
+  };
+
+  const takePhotoWithCamera = () => {
+    const options = {
+      mediaType: 'photo' as MediaType,
+      quality: 0.8,
+      maxWidth: 1200,
+      maxHeight: 1200,
+    };
+
+    launchCamera(options, (response: ImagePickerResponse) => {
+      if (response.didCancel) return;
+      if (response.errorMessage) {
+        Alert.alert('Error', 'Error al tomar la foto: ' + response.errorMessage);
+        return;
+      }
+      if (response.assets && response.assets[0]) {
+        const asset = response.assets[0];
+        if (asset.uri) {
+          setSelectedPhoto(asset.uri);
+          setPhotoPreview(asset.uri);
+        }
+      }
+    });
+  };
+
+  const showPhotoOptions = () => {
+    Alert.alert(
+      'Seleccionar Foto',
+      '¿Cómo quieres agregar la foto de perfil?',
+      [
+        { text: 'Tomar Foto', onPress: takePhotoWithCamera },
+        { text: 'Seleccionar de Galería', onPress: selectPhotoFromGallery },
+        { text: 'Cancelar', style: 'cancel' },
+      ]
+    );
+  };
+
+  const handleUploadPhoto = async () => {
+    if (selectedPhoto && user?.id) {
+      try {
+        await uploadPhotoMutation.mutateAsync({
+          userId: user.id,
+          photoUri: selectedPhoto
+        });
+
+        Alert.alert(
+          'Foto subida',
+          'La foto de perfil se ha subido exitosamente.',
+          [{ text: 'OK', onPress: () => {
+            setShowPhotoModal(false);
+            setSelectedPhoto(null);
+            setPhotoPreview(null);
+          }}]
+        );
+      } catch (error) {
+        console.error('Error uploading photo:', error);
+        Alert.alert('Error', 'Error al subir la foto. Inténtalo de nuevo.');
+      }
+    }
+  };
+
+  const handleDeletePhoto = () => {
+    Alert.alert(
+      'Eliminar foto',
+      '¿Estás seguro de que quieres eliminar tu foto de perfil?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => {
+          if (user?.id) {
+            try {
+              await deletePhotoMutation.mutateAsync(user.id);
+              Alert.alert('Foto eliminada', 'La foto de perfil se ha eliminado exitosamente.');
+            } catch (error) {
+              console.error('Error deleting photo:', error);
+              Alert.alert('Error', 'Error al eliminar la foto. Inténtalo de nuevo.');
+            }
+          }
+        }},
       ]
     );
   };
@@ -142,9 +256,27 @@ const ProfileScreen: React.FC = () => {
       <ScrollView style={styles.scrollView}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.avatar}>
-            <Icon name="person" size={48} color="#22c55e" />
-          </View>
+          <TouchableOpacity
+            style={styles.avatarContainer}
+            onPress={() => setShowPhotoModal(true)}
+          >
+            {user.profile_photo_url || photoPreview ? (
+              <Image
+                source={{
+                  uri: photoPreview || user.profile_photo_url ||
+                    'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&h=400&q=80'
+                }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatar}>
+                <Icon name="person" size={48} color="#22c55e" />
+              </View>
+            )}
+            <View style={styles.avatarOverlay}>
+              <Icon name="camera-alt" size={16} color="#fff" />
+            </View>
+          </TouchableOpacity>
           <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
           <Text style={styles.email}>{user.email}</Text>
         </View>
@@ -316,6 +448,85 @@ const ProfileScreen: React.FC = () => {
                 style={styles.saveButton}
               />
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Photo Modal */}
+      <Modal
+        visible={showPhotoModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowPhotoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Foto de Perfil</Text>
+              <TouchableOpacity onPress={() => setShowPhotoModal(false)}>
+                <Icon name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalBody}>
+              {photoPreview || user.profile_photo_url ? (
+                <View style={styles.photoPreviewContainer}>
+                  <Image
+                    source={{ uri: photoPreview || user.profile_photo_url }}
+                    style={styles.photoPreview}
+                  />
+                </View>
+              ) : (
+                <View style={styles.noPhotoContainer}>
+                  <View style={styles.noPhotoIcon}>
+                    <Icon name="person" size={48} color="#64748b" />
+                  </View>
+                  <Text style={styles.noPhotoText}>No tienes foto de perfil</Text>
+                </View>
+              )}
+
+              <View style={styles.photoActions}>
+                <TouchableOpacity
+                  style={styles.photoActionButton}
+                  onPress={showPhotoOptions}
+                >
+                  <Icon name="camera-alt" size={20} color="#22c55e" />
+                  <Text style={styles.photoActionText}>
+                    {photoPreview || user.profile_photo_url ? 'Cambiar Foto' : 'Agregar Foto'}
+                  </Text>
+                </TouchableOpacity>
+
+                {(photoPreview || user.profile_photo_url) && (
+                  <TouchableOpacity
+                    style={[styles.photoActionButton, styles.deleteButton]}
+                    onPress={handleDeletePhoto}
+                  >
+                    <Icon name="delete" size={20} color="#ef4444" />
+                    <Text style={[styles.photoActionText, styles.deleteText]}>Eliminar Foto</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {selectedPhoto && (
+              <View style={styles.modalFooter}>
+                <Button
+                  title="Cancelar"
+                  onPress={() => {
+                    setSelectedPhoto(null);
+                    setPhotoPreview(null);
+                  }}
+                  variant="outline"
+                  style={styles.cancelButton}
+                />
+                <Button
+                  title="Subir Foto"
+                  onPress={handleUploadPhoto}
+                  style={styles.saveButton}
+                  loading={uploadPhotoMutation.isPending}
+                />
+              </View>
+            )}
           </View>
         </View>
       </Modal>
@@ -518,6 +729,85 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flex: 1,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 3,
+    borderColor: '#22c55e',
+  },
+  avatarOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#22c55e',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  photoPreviewContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  photoPreview: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 3,
+    borderColor: '#22c55e',
+  },
+  noPhotoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  noPhotoIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  noPhotoText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  photoActions: {
+    gap: 12,
+  },
+  photoActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  photoActionText: {
+    fontSize: 16,
+    color: '#22c55e',
+    marginLeft: 8,
+    fontWeight: '500',
+  },
+  deleteButton: {
+    borderColor: '#fecaca',
+    backgroundColor: '#fef2f2',
+  },
+  deleteText: {
+    color: '#ef4444',
   },
 });
 

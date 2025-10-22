@@ -196,12 +196,6 @@ const LandingScreen: React.FC = () => {
                 Somos un equipo comprometido con el futuro del agro colombiano. Nuestra misión es tender un puente entre la tecnología y las comunidades, llevando innovación al corazón del campo. Creemos firmemente que la transformación nace de la unión entre conocimiento, tradición y herramientas digitales.
               </Text>
             </View>
-            <View style={styles.aboutImage}>
-              <View style={styles.imagePlaceholder}>
-                <Icon name="nature-people" size={48} color="#22c55e" />
-                <Text style={styles.imageText}>Campesinos</Text>
-              </View>
-            </View>
           </View>
         </View>
 
@@ -215,6 +209,7 @@ const LandingScreen: React.FC = () => {
             <Button
               title="Comenzar Ahora"
               onPress={navigateToRegister}
+              variant="outline"
               style={styles.footerButton}
             />
           </View>
@@ -542,7 +537,6 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     backgroundColor: '#22c55e',
-    backgroundClip: 'text',
     color: 'transparent',
     marginBottom: 16,
     textAlign: 'center',

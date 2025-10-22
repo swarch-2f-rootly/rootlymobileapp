@@ -20,7 +20,7 @@ interface PlantDevicesManagerProps {
 }
 
 export const PlantDevicesManager: React.FC<PlantDevicesManagerProps> = ({
-  plantId,
+  plantId: _plantId,
   plantName,
 }) => {
   const { data: allDevices, isLoading } = useDevices();

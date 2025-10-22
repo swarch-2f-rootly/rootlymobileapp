@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { plantsService, SensorReading, CurrentMetrics, PlantAlert } from '../lib/api/plantsService';
+import { plantsService, SensorReading } from '../lib/api/plantsService';
 
 export const usePlantMetrics = (plantId: string, hours: number = 24) => {
   return useQuery({

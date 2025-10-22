@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/authStore';
 import { authService } from '../lib/api/authService';
 import { LoginCredentials, RegisterData } from '../types/auth';
@@ -55,9 +55,20 @@ export const useAuth = () => {
   });
 
   const profileQuery = useQuery({
-    queryKey: ['profile'],
-    queryFn: () => authService.getProfile(),
-    enabled: isAuthenticated,
+    queryKey: ['profile', user?.id],
+    queryFn: () => user?.id ? authService.getProfile(user.id) : Promise.reject('No user ID'),
+    enabled: isAuthenticated && !!user?.id,
+  });
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: Partial<User>) => {
+      if (!user?.id) throw new Error('No user ID');
+      return authService.updateProfile(user.id, data);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch profile data
+      queryClient.invalidateQueries({ queryKey: ['profile', user?.id] });
+    },
   });
 
   return {
@@ -70,16 +81,19 @@ export const useAuth = () => {
     login: loginMutation.mutateAsync,
     register: registerMutation.mutateAsync,
     logout: logoutMutation.mutateAsync,
+    updateProfile: updateProfileMutation.mutateAsync,
 
     // Loading states
     isLoggingIn: loginMutation.isPending,
     isRegistering: registerMutation.isPending,
     isLoggingOut: logoutMutation.isPending,
+    isUpdatingProfile: updateProfileMutation.isPending,
 
     // Errors
     loginError: loginMutation.error,
     registerError: registerMutation.error,
     logoutError: logoutMutation.error,
+    updateProfileError: updateProfileMutation.error,
 
     // Profile
     profile: profileQuery.data,

@@ -204,7 +204,7 @@ export function useRealtimeMonitoring(
 export function useLatestMeasurement(
   controllerId: string,
   enabled: boolean = true,
-  pollInterval: number = 3000
+  _pollInterval: number = 3000
 ) {
   const input = useMemo(() => ({
     controllers: controllerId ? [controllerId] : [],

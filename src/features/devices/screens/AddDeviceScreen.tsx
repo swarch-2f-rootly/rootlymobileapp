@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useForm } from '@tanstack/react-form';
 import {
   View,
   Text,
@@ -21,106 +22,80 @@ import { DeviceCategory } from '../../../types/devices';
 const AddDeviceScreen: React.FC = () => {
   const navigation = useNavigation();
   const createDeviceMutation = useCreateDevice();
+  const [showSuccess, setShowSuccess] = useState(false);
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    version: '',
-    category: 'sensor' as DeviceCategory,
-  });
-
-  const [errors, setErrors] = useState({
-    name: '',
-    description: '',
-    version: '',
-    category: '',
-  });
-
-  const validateForm = () => {
-    const newErrors = {
+  const form = useForm({
+    defaultValues: {
       name: '',
       description: '',
       version: '',
-      category: '',
-    };
-    let isValid = true;
+      category: 'sensor' as DeviceCategory,
+    },
+    onSubmit: async ({ value }) => {
+      try {
+        console.log('Submitting device data:', value);
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido';
-      isValid = false;
-    }
+        // Prepare data for validation (convert empty strings to undefined for optional fields)
+        const dataToValidate = {
+          ...value,
+          description: value.description || undefined,
+          version: value.version || undefined,
+        };
 
-    if (!formData.category) {
-      newErrors.category = 'La categoría es requerida';
-      isValid = false;
-    }
+        console.log('Validated data:', dataToValidate);
 
-    setErrors(newErrors);
-    return isValid;
-  };
+        // Create the device
+        const createdDevice = await createDeviceMutation.mutateAsync(dataToValidate);
+        console.log('Device created successfully:', createdDevice);
 
-  const handleInputChange = (field: keyof typeof formData) => (value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
+        // Show success message
+        setShowSuccess(true);
 
-  const handleCategorySelect = (category: DeviceCategory) => {
-    setFormData(prev => ({ ...prev, category }));
-    if (errors.category) {
-      setErrors(prev => ({ ...prev, category: '' }));
-    }
-  };
+        // Reset form after short delay
+        setTimeout(() => {
+          form.reset();
+          setShowSuccess(false);
+        }, 2000);
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
-
-    try {
-      await createDeviceMutation.mutateAsync({
-        name: formData.name.trim(),
-        description: formData.description.trim() || undefined,
-        version: formData.version.trim() || undefined,
-        category: formData.category,
-      });
-
-      Alert.alert(
-        '¡Éxito!',
-        'Dispositivo creado exitosamente',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      );
-    } catch (error: any) {
-      console.error('Error creating device:', error);
-      let errorMessage = 'Error al crear el dispositivo. Inténtalo de nuevo.';
-
-      if (error?.response?.status === 422) {
-        errorMessage = 'Datos inválidos. Verifica la información ingresada.';
-      } else if (error?.response?.status === 400) {
-        errorMessage = 'Error en los datos proporcionados.';
+      } catch (error) {
+        console.error('Error creating device:', error);
+        Alert.alert(
+          'Error',
+          'Error al crear el dispositivo. Por favor, verifica los datos e intenta de nuevo.'
+        );
       }
+    },
+  });
 
-      Alert.alert('Error', errorMessage);
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'microcontroller':
+        return 'memory';
+      case 'sensor':
+        return 'sensors';
+      default:
+        return 'sensors';
     }
+  };
+
+  const getCategoryColor = (category: string, isSelected: boolean) => {
+    if (isSelected) {
+      return category === 'microcontroller' ? '#3b82f6' : '#22c55e';
+    }
+    return '#64748b';
   };
 
   const categoryOptions = [
     {
-      value: 'sensor' as DeviceCategory,
-      label: 'Sensor',
-      icon: 'sensors',
-      description: 'Dispositivo para medir variables ambientales',
-    },
-    {
       value: 'microcontroller' as DeviceCategory,
       label: 'Microcontrolador',
-      icon: 'memory',
-      description: 'Dispositivo de control y procesamiento',
+      desc: 'Arduino, ESP32, Raspberry Pi'
     },
+    {
+      value: 'sensor' as DeviceCategory,
+      label: 'Sensor',
+      desc: 'DHT11, Soil Moisture, Light'
+    }
   ];
 
   if (createDeviceMutation.isPending) {
@@ -135,97 +110,137 @@ const AddDeviceScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Icon name="arrow-back" size={24} color="#3b82f6" />
+          </TouchableOpacity>
           <View style={styles.headerContent}>
-            <Icon name="arrow-back" size={24} color="#22c55e" onPress={() => navigation.goBack()} />
+            <View style={styles.headerIcon}>
+              <Icon name="memory" size={24} color="#fff" />
+            </View>
             <Text style={styles.headerTitle}>Nuevo Dispositivo</Text>
           </View>
         </View>
 
         <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={styles.icon}>
-              <Icon name="devices" size={48} color="#22c55e" />
-            </View>
-            <Text style={styles.iconText}>Agrega un nuevo dispositivo</Text>
-          </View>
-
           {/* Form */}
-          <View style={styles.form}>
-            <Input
-              label="Nombre del dispositivo"
-              value={formData.name}
-              onChangeText={handleInputChange('name')}
-              placeholder="Ej: Sensor de Humedad DHT22"
-              error={errors.name}
-              autoCapitalize="words"
-            />
-
-            <View style={styles.categorySection}>
-              <Text style={styles.categoryLabel}>Categoría</Text>
-              {categoryOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.categoryOption,
-                    formData.category === option.value && styles.categorySelected,
-                  ]}
-                  onPress={() => handleCategorySelect(option.value)}
-                >
-                  <View style={styles.categoryContent}>
-                    <View style={styles.categoryIcon}>
-                      <Icon
-                        name={option.icon}
-                        size={24}
-                        color={formData.category === option.value ? '#22c55e' : '#64748b'}
-                      />
-                    </View>
-                    <View style={styles.categoryText}>
-                      <Text style={[
-                        styles.categoryTitle,
-                        formData.category === option.value && styles.categoryTitleSelected,
-                      ]}>
-                        {option.label}
-                      </Text>
-                      <Text style={[
-                        styles.categoryDescription,
-                        formData.category === option.value && styles.categoryDescriptionSelected,
-                      ]}>
-                        {option.description}
-                      </Text>
-                    </View>
-                  </View>
-                  {formData.category === option.value && (
-                    <Icon name="check-circle" size={24} color="#22c55e" />
+          <View style={styles.formContainer}>
+            <form.Field
+              name="name"
+              children={(field) => (
+                <View style={styles.field}>
+                  <Input
+                    label="Nombre del Dispositivo *"
+                    value={field.state.value}
+                    onChangeText={(value) => field.handleChange(value)}
+                    placeholder="Ej: Sensor DHT11, Arduino Uno"
+                    autoCapitalize="words"
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <Text style={styles.errorText}>
+                      {String(field.state.meta.errors[0])}
+                    </Text>
                   )}
-                </TouchableOpacity>
-              ))}
-              {errors.category ? (
-                <Text style={styles.categoryError}>{errors.category}</Text>
-              ) : null}
-            </View>
-
-            <Input
-              label="Versión (opcional)"
-              value={formData.version}
-              onChangeText={handleInputChange('version')}
-              placeholder="Ej: v1.0.0"
-              error={errors.version}
+                </View>
+              )}
             />
 
-            <Input
-              label="Descripción (opcional)"
-              value={formData.description}
-              onChangeText={handleInputChange('description')}
-              placeholder="Información adicional sobre el dispositivo..."
-              multiline
-              numberOfLines={3}
-              error={errors.description}
-              style={{ height: 80 }}
+            {/* Category Field */}
+            <form.Field
+              name="category"
+              children={(field) => (
+                <View style={styles.field}>
+                  <Text style={styles.label}>Categoría *</Text>
+                  <View style={styles.categoryGrid}>
+                    {categoryOptions.map((option) => {
+                      const isSelected = field.state.value === option.value;
+                      return (
+                        <TouchableOpacity
+                          key={option.value}
+                          style={[
+                            styles.categoryOption,
+                            isSelected && styles.categorySelected,
+                          ]}
+                          onPress={() => field.handleChange(option.value)}
+                        >
+                          <View style={styles.categoryContent}>
+                            <View style={[styles.categoryIcon, isSelected && styles.categoryIconSelected]}>
+                              <Icon
+                                name={getCategoryIcon(option.value)}
+                                size={20}
+                                color={isSelected ? '#fff' : getCategoryColor(option.value, isSelected)}
+                              />
+                            </View>
+                            <View style={styles.categoryText}>
+                              <Text style={[styles.categoryTitle, isSelected && styles.categoryTitleSelected]}>
+                                {option.label}
+                              </Text>
+                              <Text style={[styles.categoryDesc, isSelected && styles.categoryDescSelected]}>
+                                {option.desc}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  {field.state.meta.errors.length > 0 && (
+                    <Text style={styles.errorText}>
+                      {String(field.state.meta.errors[0])}
+                    </Text>
+                  )}
+                </View>
+              )}
             />
 
+            {/* Description Field */}
+            <form.Field
+              name="description"
+              children={(field) => (
+                <View style={styles.field}>
+                  <Input
+                    label="Descripción (Opcional)"
+                    value={field.state.value || ''}
+                    onChangeText={(value) => field.handleChange(value)}
+                    placeholder="Describe las características del dispositivo..."
+                    multiline
+                    numberOfLines={3}
+                    style={{ height: 80 }}
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <Text style={styles.errorText}>
+                      {String(field.state.meta.errors[0])}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
+
+            {/* Version Field */}
+            <form.Field
+              name="version"
+              children={(field) => (
+                <View style={styles.field}>
+                  <Input
+                    label="Versión (Opcional)"
+                    value={field.state.value || ''}
+                    onChangeText={(value) => field.handleChange(value)}
+                    placeholder="Ej: v1.0, Rev A"
+                  />
+                  {field.state.meta.errors.length > 0 && (
+                    <Text style={styles.errorText}>
+                      {String(field.state.meta.errors[0])}
+                    </Text>
+                  )}
+                </View>
+              )}
+            />
+
+            {/* Info Box */}
             <View style={styles.infoBox}>
-              <Icon name="info" size={20} color="#22c55e" />
+              <Icon name="info" size={20} color="#3b82f6" />
               <Text style={styles.infoText}>
                 Los dispositivos se utilizan para conectar sensores y recopilar datos de tus plantas.
               </Text>
@@ -234,13 +249,45 @@ const AddDeviceScreen: React.FC = () => {
 
           {/* Submit Button */}
           <View style={styles.buttonContainer}>
-            <Button
-              title="Crear Dispositivo"
-              onPress={handleSubmit}
-              loading={createDeviceMutation.isPending}
-              style={styles.submitButton}
+            <form.Subscribe
+              selector={(state) => [state.canSubmit, state.isSubmitting]}
+              children={([canSubmit, isSubmitting]) => (
+                <Button
+                  title={isSubmitting ? "Creando..." : "Crear Dispositivo"}
+                  onPress={() => form.handleSubmit()}
+                  disabled={!canSubmit || !!isSubmitting || createDeviceMutation.isPending}
+                  loading={isSubmitting || createDeviceMutation.isPending}
+                  style={styles.submitButton}
+                />
+              )}
             />
           </View>
+
+          {/* Success Message */}
+          {showSuccess && (
+            <View style={styles.successMessage}>
+              <Icon name="check-circle" size={20} color="#22c55e" />
+              <View style={styles.messageContent}>
+                <Text style={styles.successTitle}>¡Dispositivo creado exitosamente!</Text>
+                <Text style={styles.successText}>
+                  El dispositivo ha sido registrado y está listo para ser asignado a una planta.
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Error Message */}
+          {createDeviceMutation.isError && (
+            <View style={styles.errorMessage}>
+              <Icon name="error" size={20} color="#ef4444" />
+              <View style={styles.messageContent}>
+                <Text style={styles.errorTitle}>Error al crear el dispositivo</Text>
+                <Text style={styles.errorText}>
+                  {createDeviceMutation.error?.message || 'Por favor, verifica los datos e intenta de nuevo.'}
+                </Text>
+              </View>
+            </View>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -250,26 +297,41 @@ const AddDeviceScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#eff6ff', // blue-50 equivalent
   },
   keyboardAvoid: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
+  backButton: {
+    marginRight: 16,
+  },
   headerContent: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    justifyContent: 'center',
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1e293b',
-    marginLeft: 16,
   },
   scrollView: {
     flex: 1,
@@ -277,54 +339,49 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 20,
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
+  formContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  icon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0fdf4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
+  field: {
+    marginBottom: 20,
   },
-  iconText: {
+  label: {
     fontSize: 16,
-    color: '#64748b',
-    textAlign: 'center',
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 8,
   },
-  form: {
-    marginBottom: 32,
-  },
-  categorySection: {
-    marginBottom: 16,
-  },
-  categoryLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 12,
+  categoryGrid: {
+    flexDirection: 'row',
+    gap: 12,
   },
   categoryOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flex: 1,
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 8,
     borderWidth: 2,
     borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   categorySelected: {
-    borderColor: '#22c55e',
-    backgroundColor: '#f0fdf4',
+    borderColor: '#3b82f6',
+    backgroundColor: '#eff6ff',
   },
   categoryContent: {
-    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    gap: 8,
   },
   categoryIcon: {
     width: 48,
@@ -333,35 +390,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+  },
+  categoryIconSelected: {
+    backgroundColor: '#3b82f6',
   },
   categoryText: {
-    flex: 1,
+    alignItems: 'center',
   },
   categoryTitle: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#1e293b',
+    textAlign: 'center',
   },
   categoryTitleSelected: {
-    color: '#22c55e',
+    color: '#3b82f6',
   },
-  categoryDescription: {
-    fontSize: 14,
+  categoryDesc: {
+    fontSize: 12,
     color: '#64748b',
+    textAlign: 'center',
     marginTop: 2,
   },
-  categoryDescriptionSelected: {
-    color: '#166534',
-  },
-  categoryError: {
-    fontSize: 14,
-    color: '#ef4444',
-    marginTop: 4,
+  categoryDescSelected: {
+    color: '#1e40af',
   },
   infoBox: {
     flexDirection: 'row',
-    backgroundColor: '#f0fdf4',
+    backgroundColor: '#eff6ff',
     borderRadius: 8,
     padding: 12,
     marginTop: 16,
@@ -369,16 +425,58 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 14,
-    color: '#166534',
+    color: '#1e40af',
     marginLeft: 8,
     flex: 1,
     lineHeight: 20,
   },
   buttonContainer: {
-    marginBottom: 20,
+    marginTop: 24,
   },
   submitButton: {
     marginBottom: 12,
+  },
+  successMessage: {
+    flexDirection: 'row',
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    alignItems: 'flex-start',
+  },
+  errorMessage: {
+    flexDirection: 'row',
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    alignItems: 'flex-start',
+  },
+  messageContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  successTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#166534',
+    marginBottom: 4,
+  },
+  successText: {
+    fontSize: 14,
+    color: '#166534',
+    lineHeight: 20,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#dc2626',
+    marginBottom: 4,
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#dc2626',
+    lineHeight: 20,
   },
 });
 

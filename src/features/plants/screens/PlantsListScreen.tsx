@@ -13,8 +13,10 @@ import { usePlants } from '../../../hooks/usePlants';
 import { Card } from '../../../components/ui/Card';
 import { Loading } from '../../../components/ui/Loading';
 import { Button } from '../../../components/ui/Button';
+import { AuthenticatedImage } from '../../../components/ui/AuthenticatedImage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Plant } from '../../../types/plants';
+import { getPlantImageUrl } from '../../../utils/plantUtils';
 
 const PlantsListScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -44,27 +46,42 @@ const PlantsListScreen: React.FC = () => {
       activeOpacity={0.7}
     >
       <Card style={styles.plantCard}>
-        <View style={styles.plantHeader}>
-          <View style={styles.plantIcon}>
-            <Icon name="grass" size={24} color="#22c55e" />
+        {/* Plant Image Background */}
+        <View style={styles.plantImageSection}>
+          <AuthenticatedImage
+            uri={getPlantImageUrl(item)}
+            style={styles.plantBackgroundImage}
+            resizeMode="cover"
+          />
+          {/* Status Badge */}
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>Activa</Text>
           </View>
-          <View style={styles.plantInfo}>
-            <Text style={styles.plantName}>{item.name}</Text>
-            <Text style={styles.plantSpecies}>{item.species}</Text>
-          </View>
-          <Icon name="chevron-right" size={24} color="#64748b" />
         </View>
 
-        {item.description && (
-          <Text style={styles.plantDescription} numberOfLines={2}>
-            {item.description}
-          </Text>
-        )}
+        {/* Plant Info Section */}
+        <View style={styles.plantContent}>
+          <View style={styles.plantHeader}>
+            <View style={styles.plantInfo}>
+              <Text style={styles.plantName}>{item.name}</Text>
+              <Text style={styles.plantSpecies}>{item.species}</Text>
+            </View>
+          </View>
 
-        <View style={styles.plantFooter}>
-          <Text style={styles.plantDate}>
-            Creada: {new Date(item.created_at).toLocaleDateString('es-ES')}
-          </Text>
+          {item.description && (
+            <Text style={styles.plantDescription} numberOfLines={2}>
+              {item.description}
+            </Text>
+          )}
+
+          <View style={styles.plantFooter}>
+            <Text style={styles.plantDate}>
+              Creada: {new Date(item.created_at).toLocaleDateString('es-ES')}
+            </Text>
+            {item.photo_filename && (
+              <Text style={styles.photoIndicator}>📷 Con foto</Text>
+            )}
+          </View>
         </View>
       </Card>
     </TouchableOpacity>
@@ -242,49 +259,79 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   plantItem: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   plantCard: {
+    padding: 0,
+    overflow: 'hidden',
+    borderRadius: 12,
+  },
+  plantImageSection: {
+    position: 'relative',
+    width: '100%',
+    height: 144,
+    backgroundColor: '#f0fdf4',
+  },
+  plantBackgroundImage: {
+    width: '100%',
+    height: '100%',
+  },
+  statusBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: '#dcfce7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#166534',
+  },
+  plantContent: {
     padding: 16,
   },
   plantHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  plantIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f0fdf4',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
+    marginBottom: 12,
   },
   plantInfo: {
     flex: 1,
   },
   plantName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontWeight: 'bold',
+    color: '#22c55e',
+    marginBottom: 4,
   },
   plantSpecies: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#64748b',
   },
   plantDescription: {
     fontSize: 14,
-    color: '#64748b',
-    marginBottom: 8,
+    color: '#475569',
+    marginBottom: 12,
     lineHeight: 20,
   },
   plantFooter: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(226, 232, 240, 0.3)',
   },
   plantDate: {
     fontSize: 12,
-    color: '#94a3b8',
+    color: '#64748b',
+  },
+  photoIndicator: {
+    fontSize: 12,
+    color: '#22c55e',
   },
   emptyState: {
     flex: 1,

@@ -15,7 +15,6 @@ import AddPlantScreen from '../../features/plants/screens/AddPlantScreen';
 import DevicesListScreen from '../../features/devices/screens/DevicesListScreen';
 import AddDeviceScreen from '../../features/devices/screens/AddDeviceScreen';
 import ProfileScreen from '../../features/profile/screens/ProfileScreen';
-import AnalyticsScreen from '../../features/analytics/AnalyticsScreen';
 
 // Import icons (we'll use react-native-vector-icons)
 import Icon from 'react-native-vector-icons/MaterialIcons';
@@ -27,7 +26,7 @@ function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused: _focused, color, size }) => {
           let iconName: string;
 
           if (route.name === 'Home') {
@@ -36,8 +35,6 @@ function TabNavigator() {
             iconName = 'grass';
           } else if (route.name === 'Devices') {
             iconName = 'devices';
-          } else if (route.name === 'Analytics') {
-            iconName = 'analytics';
           } else if (route.name === 'Profile') {
             iconName = 'person';
           } else {
@@ -68,11 +65,6 @@ function TabNavigator() {
         name="Devices"
         component={DevicesListScreen}
         options={{ tabBarLabel: 'Dispositivos' }}
-      />
-      <Tab.Screen
-        name="Analytics"
-        component={AnalyticsScreen}
-        options={{ tabBarLabel: 'Analytics' }}
       />
       <Tab.Screen
         name="Profile"

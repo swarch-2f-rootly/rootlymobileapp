@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { devicesService } from '../lib/api/devicesService';
-import { Device, DeviceCreate, DeviceUpdate } from '../types/devices';
+import { DeviceCreate, DeviceUpdate } from '../types/devices';
 
 export const useDevices = () => {
   return useQuery({

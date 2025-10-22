@@ -134,19 +134,12 @@ const { chartData } = useRealtimeMonitoring(
 // Usar estos datos reales en lugar de los mocks
 ```
 
-### 4. Analytics Screen - Gráficas Reales
-**PROBLEMA**: `AnalyticsScreen.tsx` usa datos mockeados
+### 4. Analytics Screen - ELIMINADO
+**DECISIÓN**: `AnalyticsScreen.tsx` fue eliminado ya que no debe ser accesible desde el menú principal. Los analytics se muestran únicamente desde el detalle de una planta específica (PlantDetailScreen).
 
-**SOLUCIÓN**:
-- Eliminar todos los datos mock del archivo
-- Usar los mismos hooks de GraphQL que PlantDetail
-- Mostrar una gráfica por cada tipo de medición:
-  1. Temperatura
-  2. Humedad del Aire
-  3. Humedad del Suelo  
-  4. Nivel de Luz
+**MOTIVO**: Para acceder a analytics se debe seleccionar primero una planta específica, no mostrar datos globales de todas las plantas.
 
-**REFERENCIA**: Ver `rootly-frontend/src/features/plantDetail/PlantCharts.tsx` (líneas 72-304)
+**ACTUALMENTE**: Los datos analíticos se muestran en PlantDetailScreen usando hooks como `usePlantChartData`, `useRealtimeMonitoring`, etc.
 
 ### 5. HomeScreen - Verificar datos reales
 **ESTADO**: ✅ YA USA DATOS REALES
@@ -188,7 +181,7 @@ config.headers.authorization = `Bearer ${token}`;
 - [ ] Copiar y adaptar hooks de GraphQL del frontend web
 - [ ] Eliminar TODOS los datos mock de PlantDetailScreen
 - [ ] Implementar gráficas reales con datos del API en PlantDetail
-- [ ] Implementar gráficas reales con datos del API en Analytics
+- [x] ~~Implementar gráficas reales con datos del API en Analytics~~ (AnalyticsScreen eliminado)
 - [ ] Probar autenticación end-to-end
 - [ ] Probar navegación entre todas las pantallas
 - [ ] Verificar que NO HAY datos mockeados en ningún lado
@@ -199,7 +192,7 @@ config.headers.authorization = `Bearer ${token}`;
 - [ ] Lista de plantas carga datos del API
 - [ ] Detalle de planta muestra métricas reales (NO MOCK)
 - [ ] Gráficas muestran datos históricos reales
-- [ ] Analytics muestra 4 gráficas con datos reales
+- [x] ~~Analytics muestra 4 gráficas con datos reales~~ (eliminado - ahora en PlantDetail)
 - [ ] Profile muestra datos del usuario autenticado
 - [ ] Logout funciona y limpia tokens
 

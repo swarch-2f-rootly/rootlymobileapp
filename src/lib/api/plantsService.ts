@@ -70,6 +70,12 @@ export const plantsService = {
     return response.data;
   },
 
+  // Get devices associated with a plant
+  async getPlantDevices(plantId: string): Promise<any[]> {
+    const response = await apiClient.get(`/api/v1/plants/${plantId}/devices`);
+    return response.data;
+  },
+
   // Photo upload endpoint
   async uploadPlantPhoto(plantId: string, photoUri: string): Promise<any> {
     // Create FormData for multipart upload
