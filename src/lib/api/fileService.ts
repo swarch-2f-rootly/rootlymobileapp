@@ -16,7 +16,7 @@ export class FileService {
       type: fileType,
     } as any); // 'as any' is used due to React Native's Blob/File API differences
 
-    const response = await apiClient.post(`/api/v1/files/${userId}/photo`, formData, {
+    const response = await apiClient.post(`/api/v1/users/${userId}/photo`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -28,14 +28,22 @@ export class FileService {
    * Delete a user's profile photo
    */
   async deleteProfilePhoto(userId: string): Promise<void> {
-    await apiClient.delete(`/api/v1/files/${userId}/photo`);
+    await apiClient.delete(`/api/v1/users/${userId}/photo`);
   }
 
   /**
    * Get profile photo metadata
    */
   async getProfilePhotoMetadata(userId: string): Promise<any> {
-    const response = await apiClient.get(`/api/v1/files/${userId}/photo/metadata`);
+    const response = await apiClient.get(`/api/v1/users/${userId}/photo/metadata`);
+    return response.data;
+  }
+
+  /**
+   * Get a user's profile photo
+   */
+  async getProfilePhoto(userId: string): Promise<any> {
+    const response = await apiClient.get(`/api/v1/users/${userId}/photo`);
     return response.data;
   }
 }

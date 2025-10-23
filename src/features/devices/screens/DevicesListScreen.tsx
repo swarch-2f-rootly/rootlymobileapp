@@ -5,7 +5,9 @@ import {
   StyleSheet,
   FlatList,
   SafeAreaView,
+  TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useDevices } from '../../../hooks/useDevices';
 import { Card } from '../../../components/ui/Card';
 import { Loading } from '../../../components/ui/Loading';
@@ -14,6 +16,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Device } from '../../../types/devices';
 
 const DevicesListScreen: React.FC = () => {
+  const navigation = useNavigation();
   const { data: devices, isLoading, error, refetch } = useDevices();
 
   const getCategoryIcon = (category: string) => {
@@ -79,9 +82,7 @@ const DevicesListScreen: React.FC = () => {
       </Text>
       <Button
         title="Agregar dispositivo"
-        onPress={() => {
-          // TODO: Navigate to add device screen
-        }}
+        onPress={() => navigation.navigate('AddDevice' as never)}
         style={styles.emptyButton}
       />
     </View>
@@ -114,9 +115,12 @@ const DevicesListScreen: React.FC = () => {
           <Icon name="devices" size={28} color="#22c55e" />
           <Text style={styles.headerTitle}>Dispositivos</Text>
         </View>
-        <View style={styles.addButton}>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => navigation.navigate('AddDevice' as never)}
+        >
           <Icon name="add" size={24} color="#fff" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Stats */}

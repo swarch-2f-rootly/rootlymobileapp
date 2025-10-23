@@ -17,6 +17,7 @@ import { Button } from '../../../components/ui/Button';
 import { AuthenticatedImage } from '../../../components/ui/AuthenticatedImage';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import SensorDataCard from '../components/plantDetail/SensorDataCard';
+import MetricDetailsModal from '../components/plantDetail/MetricDetailsModal';
 import { getPlantImageUrl } from '../../../utils/plantUtils';
 
 type RouteParams = {
@@ -31,15 +32,34 @@ const PlantDetailScreen: React.FC = () => {
   const { plantId } = route.params as RouteParams;
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [isClient, setIsClient] = useState(false);
+  
+  // Estado para modales de métricas
+  const [openModal, setOpenModal] = useState<'temperature' | 'air_humidity' | 'soil_humidity' | 'light_intensity' | null>(null);
 
   // Obtener la planta desde la API
   const { data: plant, isLoading, error } = usePlant(plantId);
   const { data: plantDevices = [] } = usePlantDevices(plantId);
   const deletePlantMutation = useDeletePlant();
 
+  console.log('🌱 [PlantDetailScreen] Información de la planta:', {
+    plantId,
+    hasPlant: !!plant,
+    plantName: plant?.name,
+    devicesCount: plantDevices.length,
+    devices: plantDevices.map(d => ({ id: d.id, name: d.name, category: d.category })),
+  });
+
   // Buscar el microcontrolador asignado a esta planta
   const microcontroller = plantDevices.find(device => device.category === 'microcontroller');
   const controllerId = microcontroller?.name || ''; // Usar el nombre del microcontrolador como controllerId
+  
+  console.log('🎮 [PlantDetailScreen] Microcontrolador:', {
+    hasMicrocontroller: !!microcontroller,
+    microcontrollerId: microcontroller?.id,
+    microcontrollerName: microcontroller?.name,
+    controllerId,
+    hasControllerId: !!controllerId,
+  });
 
   // Obtener datos analíticos desde GraphQL usando el controllerId del microcontrolador
   const {
@@ -47,13 +67,27 @@ const PlantDetailScreen: React.FC = () => {
     // isLoading: analyticsLoading, // Not used
     // error: analyticsError, // Not used
     hasData,
-    // allMetrics, // Not used
+    allMetrics,
     getMetricAverage,
     hasTemperature,
     hasHumidity,
     hasSoilHumidity,
     hasLight
   } = usePlantChartData(controllerId);
+
+  console.log('📈 [PlantDetailScreen] Datos analíticos:', {
+    hasData,
+    analyticsData,
+    metricsCount: allMetrics.length,
+    hasTemperature,
+    hasHumidity,
+    hasSoilHumidity,
+    hasLight,
+    temperatureAvg: getMetricAverage('temperature'),
+    airHumidityAvg: getMetricAverage('air_humidity'),
+    soilHumidityAvg: getMetricAverage('soil_humidity'),
+    lightAvg: getMetricAverage('light_intensity'),
+  });
 
   // Hook para datos históricos y gráficas (siempre habilitado si hay controllerId para mostrar gráficas)
   // const { data: historicalChartData } = useRealtimeMonitoring( // Not implemented yet
@@ -293,14 +327,14 @@ const PlantDetailScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerContent}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
             <TouchableOpacity onPress={() => navigation.goBack()}>
               <Icon name="arrow-back" size={24} color="#22c55e" />
             </TouchableOpacity>
-          <Text style={styles.headerTitle}>Detalle de Planta</Text>
-              <TouchableOpacity
+            <Text style={styles.headerTitle}>Detalle de Planta</Text>
+            <TouchableOpacity
               onPress={() => {
                 Alert.alert(
                   'Eliminar Planta',
@@ -317,121 +351,155 @@ const PlantDetailScreen: React.FC = () => {
               }}
             >
               <Icon name="delete" size={24} color="#ef4444" />
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.content}>
-          <View style={styles.gridContainer}>
-            {/* Left Column - Plant Status and Info */}
-            <View style={styles.leftColumn}>
-              {/* Plant Status Card */}
-              <Card style={styles.plantStatusCard}>
-                <View style={styles.plantStatusHeader}>
-                  <Text style={styles.plantStatusTitle}>Estado de la Planta</Text>
-                </View>
-                <View style={styles.plantImageContainer}>
-                  <AuthenticatedImage
-                    uri={getPlantImageUrl(plant)}
-                    style={styles.plantImage}
-                    resizeMode="cover"
-                  />
-                </View>
-                <View style={styles.plantStatusInfo}>
-                  <View style={[styles.statusBadge, { backgroundColor: hasMicrocontroller ? '#dcfce7' : '#fef3c7' }]}>
-                    <Text style={[styles.statusBadgeText, { color: hasMicrocontroller ? '#166534' : '#92400e' }]}>
-                      {hasMicrocontroller ? 'Activa' : 'Sin Hardware'}
-                    </Text>
-                  </View>
-                  <Text style={styles.lastUpdateText}>
-                    Última actualización: {isClient ? currentData.timestamp : "--:--:--"}
-                  </Text>
-                  <Text style={styles.sensorIdText}>{currentData.sensorId}</Text>
+          {/* Plant Status Card */}
+          <Card style={styles.plantStatusCard}>
+            <View style={styles.plantStatusHeader}>
+              <Text style={styles.plantStatusTitle}>Estado de la Planta</Text>
             </View>
-                <TouchableOpacity
-                  style={[styles.monitorButton, { backgroundColor: hasMicrocontroller ? '#22c55e' : '#9ca3af' }]}
-                  onPress={() => setIsMonitoring(!isMonitoring)}
-                  disabled={!hasMicrocontroller}
-                >
-                  <Text style={styles.monitorButtonText}>
-                    {isMonitoring ? 'Pausar Monitoreo' : 'Monitorear en Tiempo Real'}
-                  </Text>
-                </TouchableOpacity>
-              </Card>
-
-              {/* Plant Info Card */}
-              <Card style={styles.plantInfoCard}>
-                <View style={styles.plantInfoHeader}>
-                  <Icon name="eco" size={20} color="#0f766e" />
-                  <Text style={styles.plantInfoTitle}>Información de la Planta</Text>
-                </View>
-                <View style={styles.plantInfoContent}>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Especie:</Text>
-                    <Text style={styles.infoValue}>{plant.species || 'No especificada'}</Text>
+            <View style={styles.plantImageContainer}>
+              <AuthenticatedImage
+                uri={getPlantImageUrl(plant)}
+                style={styles.plantImage}
+                resizeMode="cover"
+              />
+            </View>
+            <View style={styles.plantStatusInfo}>
+              <View style={[styles.statusBadge, { backgroundColor: hasMicrocontroller ? '#dcfce7' : '#fef3c7' }]}>
+                <Text style={[styles.statusBadgeText, { color: hasMicrocontroller ? '#166534' : '#92400e' }]}>
+                  {hasMicrocontroller ? 'Activa' : 'Sin Hardware'}
+                </Text>
               </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Estado:</Text>
-                    <View style={styles.statusIndicator}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>Activa</Text>
-                    </View>
+              <Text style={styles.lastUpdateText}>
+                Última actualización: {isClient ? currentData.timestamp : "--:--:--"}
+              </Text>
+              <Text style={styles.sensorIdText}>{currentData.sensorId}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.monitorButton, { backgroundColor: hasMicrocontroller ? '#22c55e' : '#9ca3af' }]}
+              onPress={() => setIsMonitoring(!isMonitoring)}
+              disabled={!hasMicrocontroller}
+            >
+              <Text style={styles.monitorButtonText}>
+                {isMonitoring ? 'Pausar Monitoreo' : 'Monitorear en Tiempo Real'}
+              </Text>
+            </TouchableOpacity>
+          </Card>
+
+          {/* Plant Info Card */}
+          <Card style={styles.plantInfoCard}>
+            <View style={styles.plantInfoHeader}>
+              <Icon name="eco" size={20} color="#0f766e" />
+              <Text style={styles.plantInfoTitle}>Información de la Planta</Text>
+            </View>
+            <View style={styles.plantInfoContent}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Especie:</Text>
+                <Text style={styles.infoValue}>{plant.species || 'No especificada'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Estado:</Text>
+                <View style={styles.statusIndicator}>
+                  <View style={styles.statusDot} />
+                  <Text style={styles.statusText}>Activa</Text>
+                </View>
               </View>
             </View>
           </Card>
-        </View>
 
-            {/* Right Column - Sensor Data Cards */}
-            {(hasMicrocontroller && hasSensor) || hasData || isMonitoring ? (
-              <View style={styles.rightColumn}>
-                <SensorDataCard
-                  icon={<Icon name="thermostat" size={24} color="#ef4444" />}
-              title="Temperatura"
-                  subtitle="Ambiente"
-                  value={isMonitoring ? currentData.temperature : (getMetricAverage('temperature') || currentData.temperature)}
-              unit="°C"
-                  color={getStatusColor(currentData.temperature, 'temperature')}
-                  hasData={isMonitoring ? (realtimeMetrics.temperature !== undefined) : hasTemperature}
-                />
-                <SensorDataCard
-                  icon={<Icon name="opacity" size={24} color="#22c55e" />}
-                  title="Humedad del Suelo"
-                  subtitle="Substrato"
-                  value={isMonitoring ? currentData.soilHumidity : (getMetricAverage('soil_humidity') || currentData.soilHumidity)}
-              unit="%"
-                  color={getStatusColor(currentData.soilHumidity, 'humidity')}
-                  hasData={isMonitoring ? (realtimeMetrics.soilHumidity !== undefined) : hasSoilHumidity}
-                />
-                <SensorDataCard
-                  icon={<Icon name="air" size={24} color="#3b82f6" />}
-                  title="Humedad del Aire"
-                  subtitle="Ambiente"
-                  value={isMonitoring ? currentData.airHumidity : (getMetricAverage('air_humidity') || currentData.airHumidity)}
-              unit="%"
-                  color={getStatusColor(currentData.airHumidity, 'humidity')}
-                  hasData={isMonitoring ? (realtimeMetrics.airHumidity !== undefined) : hasHumidity}
-                />
-                <SensorDataCard
-                  icon={<Icon name="wb-sunny" size={24} color="#f59e0b" />}
-                  title="Luminosidad"
-                  subtitle="Lux"
-                  value={isMonitoring ? currentData.lightLevel : (getMetricAverage('light_intensity') || currentData.lightLevel)}
-                  unit=" lux"
-                  color={getStatusColor(currentData.lightLevel, 'light')}
-                  hasData={isMonitoring ? (realtimeMetrics.lightLevel !== undefined) : hasLight}
-                />
-              </View>
-            ) : (
-              <View style={styles.noDataColumn}>
-                <View style={styles.noDataContainer}>
-                  <Text style={styles.noDataText}>No hay datos para mostrar.</Text>
-                  <Text style={styles.noDataSubtext}>Asigna un sensor para empezar a monitorear.</Text>
+          {/* Sensor Data Cards */}
+          {(hasMicrocontroller && hasSensor) || hasData || isMonitoring ? (
+            <View style={styles.sensorCardsContainer}>
+              <SensorDataCard
+                icon={<Icon name="thermostat" size={24} color="#ef4444" />}
+                title="Temperatura"
+                subtitle="Ambiente"
+                value={isMonitoring ? currentData.temperature : (getMetricAverage('temperature') || currentData.temperature)}
+                unit="°C"
+                color={getStatusColor(currentData.temperature, 'temperature')}
+                hasData={isMonitoring ? (realtimeMetrics.temperature !== undefined) : hasTemperature}
+                onPress={() => setOpenModal('temperature')}
+              />
+              <SensorDataCard
+                icon={<Icon name="opacity" size={24} color="#22c55e" />}
+                title="Humedad del Suelo"
+                subtitle="Substrato"
+                value={isMonitoring ? currentData.soilHumidity : (getMetricAverage('soil_humidity') || currentData.soilHumidity)}
+                unit="%"
+                color={getStatusColor(currentData.soilHumidity, 'humidity')}
+                hasData={isMonitoring ? (realtimeMetrics.soilHumidity !== undefined) : hasSoilHumidity}
+                onPress={() => setOpenModal('soil_humidity')}
+              />
+              <SensorDataCard
+                icon={<Icon name="air" size={24} color="#3b82f6" />}
+                title="Humedad del Aire"
+                subtitle="Ambiente"
+                value={isMonitoring ? currentData.airHumidity : (getMetricAverage('air_humidity') || currentData.airHumidity)}
+                unit="%"
+                color={getStatusColor(currentData.airHumidity, 'humidity')}
+                hasData={isMonitoring ? (realtimeMetrics.airHumidity !== undefined) : hasHumidity}
+                onPress={() => setOpenModal('air_humidity')}
+              />
+              <SensorDataCard
+                icon={<Icon name="wb-sunny" size={24} color="#f59e0b" />}
+                title="Luminosidad"
+                subtitle="Lux"
+                value={isMonitoring ? currentData.lightLevel : (getMetricAverage('light_intensity') || currentData.lightLevel)}
+                unit=" lux"
+                color={getStatusColor(currentData.lightLevel, 'light')}
+                hasData={isMonitoring ? (realtimeMetrics.lightLevel !== undefined) : hasLight}
+                onPress={() => setOpenModal('light_intensity')}
+              />
             </View>
-              </View>
-            )}
-          </View>
+          ) : (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No hay datos para mostrar.</Text>
+              <Text style={styles.noDataSubtext}>Asigna un sensor para empezar a monitorear.</Text>
+            </View>
+          )}
         </View>
       </ScrollView>
+
+      {/* Modales de Métricas */}
+      <MetricDetailsModal
+        visible={openModal === 'temperature'}
+        onClose={() => setOpenModal(null)}
+        metricType="temperature"
+        metrics={allMetrics as any}
+        title="Temperatura"
+        icon={<Icon name="thermostat" size={32} color="#fff" />}
+      />
+      
+      <MetricDetailsModal
+        visible={openModal === 'air_humidity'}
+        onClose={() => setOpenModal(null)}
+        metricType="air_humidity"
+        metrics={allMetrics as any}
+        title="Humedad del Aire"
+        icon={<Icon name="air" size={32} color="#fff" />}
+      />
+      
+      <MetricDetailsModal
+        visible={openModal === 'soil_humidity'}
+        onClose={() => setOpenModal(null)}
+        metricType="soil_humidity"
+        metrics={allMetrics as any}
+        title="Humedad del Suelo"
+        icon={<Icon name="opacity" size={32} color="#fff" />}
+      />
+      
+      <MetricDetailsModal
+        visible={openModal === 'light_intensity'}
+        onClose={() => setOpenModal(null)}
+        metricType="light_intensity"
+        metrics={allMetrics as any}
+        title="Luminosidad"
+        icon={<Icon name="wb-sunny" size={32} color="#fff" />}
+      />
     </SafeAreaView>
   );
 };
@@ -465,24 +533,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   content: {
-    padding: 20,
+    padding: 16,
   },
-  gridContainer: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  leftColumn: {
-    flex: 1,
-    gap: 20,
-  },
-  rightColumn: {
-    flex: 1,
-    gap: 12,
-  },
-  noDataColumn: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  sensorCardsContainer: {
+    marginTop: 16,
   },
   noDataContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -492,6 +546,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 24,
     alignItems: 'center',
+    marginTop: 16,
   },
   noDataText: {
     fontSize: 16,
@@ -515,6 +570,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    marginBottom: 16,
   },
   plantStatusHeader: {
     alignItems: 'center',
@@ -580,7 +636,7 @@ const styles = StyleSheet.create({
 
   // Plant Info Card
   plantInfoCard: {
-    backgroundColor: 'linear-gradient(135deg, #ecfdf5, #d1fae5)', // teal gradient
+    backgroundColor: '#ecfdf5', // teal-50
     borderWidth: 2,
     borderColor: '#5eead4', // teal-200
     shadowColor: '#000',
@@ -588,6 +644,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    marginBottom: 16,
   },
   plantInfoHeader: {
     flexDirection: 'row',

@@ -22,8 +22,8 @@ export const getPlantServiceUrl = () => {
   return API_CONFIG.PLANT_SERVICE_URL;
 };
 
-// GraphQL endpoint
-export const GRAPHQL_ENDPOINT = `${API_CONFIG.GATEWAY_URL}/graphql`;
+// GraphQL endpoint - CORRECTO: apunta a /api/v1/graphql
+export const GRAPHQL_ENDPOINT = `${API_CONFIG.GATEWAY_URL}/api/v1/graphql`;
 
 // API endpoints relative to gateway
 export const API_ENDPOINTS = {

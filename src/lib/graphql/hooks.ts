@@ -7,23 +7,64 @@ import type { MultiMetricReportInput, TrendAnalysisInput } from './types';
 // controllerId: ID del microcontrolador (su nombre) asignado a la planta
 export function usePlantChartData(controllerId: string) {
   // Memoizar el input para evitar recrearlo en cada render y causar requests infinitos
-  const multiMetricInput: MultiMetricReportInput = useMemo(() => ({
-    controllers: controllerId ? [controllerId] : [], // Usar el controllerId del microcontrolador
-    metrics: ['temperature', 'air_humidity', 'soil_humidity', 'light_intensity'],
-    filters: {
-      limit: 100,
-      // Últimas 24 horas
-      startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      endTime: new Date().toISOString(),
-    }
-  }), [controllerId]);
+  const multiMetricInput: MultiMetricReportInput = useMemo(() => {
+    const input = {
+      controllers: controllerId ? [controllerId] : [], // Usar el controllerId del microcontrolador
+      metrics: ['temperature', 'air_humidity', 'soil_humidity', 'light_intensity'],
+      filters: {
+        limit: 100,
+        // Últimas 24 horas
+        startTime: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+        endTime: new Date().toISOString(),
+      }
+    };
+    
+    console.log('🏗️ [usePlantChartData] Input construido:', {
+      controllerId,
+      hasControllerId: !!controllerId,
+      input: JSON.stringify(input, null, 2),
+    });
+    
+    return input;
+  }, [controllerId]);
 
   // Solo ejecutar la query si hay controllerId
   const shouldExecuteQuery = !!controllerId && controllerId.length > 0;
 
+  console.log('🎯 [usePlantChartData] Estado del hook:', {
+    controllerId,
+    shouldExecuteQuery,
+    hasInput: !!multiMetricInput,
+  });
+
   const { data: multiMetricData, isLoading, error } = useMultiMetricReport(multiMetricInput, {
     enabled: shouldExecuteQuery
   });
+  
+  console.log('📊 [usePlantChartData] Resultado de useMultiMetricReport:', {
+    hasData: !!multiMetricData,
+    isLoading,
+    hasError: !!error,
+    error: error ? JSON.stringify(error, null, 2) : null,
+    dataPreview: multiMetricData ? JSON.stringify(multiMetricData, null, 2).substring(0, 500) : 'NO DATA',
+    fullResponse: multiMetricData ? JSON.stringify(multiMetricData, null, 2) : 'NO DATA',
+  });
+  
+  // Log adicional si no hay datos
+  if (multiMetricData?.getMultiMetricReport && multiMetricData.getMultiMetricReport.reports.length === 0) {
+    console.warn('⚠️ [usePlantChartData] El servidor respondió pero NO HAY DATOS:', {
+      controllerId,
+      totalControllers: multiMetricData.getMultiMetricReport.totalControllers,
+      totalMetrics: multiMetricData.getMultiMetricReport.totalMetrics,
+      reports: multiMetricData.getMultiMetricReport.reports,
+      posibleCausas: [
+        '1. No hay datos en InfluxDB para este controllerId',
+        '2. El controllerId en InfluxDB es diferente al nombre del microcontrolador',
+        '3. Los datos están fuera del rango de tiempo (últimas 24 horas)',
+        '4. El microcontrolador nunca ha enviado datos'
+      ],
+    });
+  }
 
   // Transformar los datos al formato esperado por PlantCharts
   const chartData = useMemo(() => {

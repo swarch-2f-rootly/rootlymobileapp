@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface SensorDataCardProps {
   icon: React.ReactNode;
@@ -9,6 +10,7 @@ interface SensorDataCardProps {
   unit: string;
   color: string;
   hasData: boolean;
+  onPress?: () => void;
 }
 
 const SensorDataCard: React.FC<SensorDataCardProps> = ({
@@ -19,8 +21,9 @@ const SensorDataCard: React.FC<SensorDataCardProps> = ({
   unit,
   color,
   hasData,
+  onPress,
 }) => {
-  return (
+  const CardContent = (
     <View style={[styles.card, { borderColor: color, opacity: hasData ? 1 : 0.6 }]}>
       <View style={styles.cardContent}>
         <View style={styles.leftSection}>
@@ -44,8 +47,24 @@ const SensorDataCard: React.FC<SensorDataCardProps> = ({
           )}
         </View>
       </View>
+      {hasData && onPress && (
+        <View style={styles.footer}>
+          <Icon name="info" size={14} color="#64748b" />
+          <Text style={styles.footerText}>Toca para ver detalles</Text>
+        </View>
+      )}
     </View>
   );
+
+  if (hasData && onPress) {
+    return (
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
+        {CardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return CardContent;
 };
 
 const styles = StyleSheet.create({
@@ -109,6 +128,20 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    gap: 4,
+  },
+  footerText: {
+    fontSize: 11,
+    color: '#64748b',
   },
 });
 

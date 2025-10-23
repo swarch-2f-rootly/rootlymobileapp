@@ -13,15 +13,18 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useCreateDevice } from '../../../hooks/useDevices';
+import { useAuthStore } from '../../../stores/authStore';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
 import { Loading } from '../../../components/ui/Loading';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { DeviceCategory } from '../../../types/devices';
+import { DeviceCreateSchema } from '../../../schemas/device.schema';
 
 const AddDeviceScreen: React.FC = () => {
   const navigation = useNavigation();
   const createDeviceMutation = useCreateDevice();
+  const { user } = useAuthStore();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const form = useForm({
@@ -33,36 +36,51 @@ const AddDeviceScreen: React.FC = () => {
     },
     onSubmit: async ({ value }) => {
       try {
-        console.log('Submitting device data:', value);
+        console.log('📝 Submitting device data:', value);
+
+        // Check if user is authenticated
+        if (!user?.id) {
+          Alert.alert('Error', 'Usuario no autenticado. Por favor, inicia sesión nuevamente.');
+          return;
+        }
 
         // Prepare data for validation (convert empty strings to undefined for optional fields)
         const dataToValidate = {
           ...value,
           description: value.description || undefined,
           version: value.version || undefined,
+          user_id: user.id,
         };
 
-        console.log('Validated data:', dataToValidate);
+        // Validate with Zod schema
+        const validatedData = DeviceCreateSchema.parse(dataToValidate);
+        console.log('✅ Validated data:', validatedData);
 
         // Create the device
-        const createdDevice = await createDeviceMutation.mutateAsync(dataToValidate);
-        console.log('Device created successfully:', createdDevice);
+        const createdDevice = await createDeviceMutation.mutateAsync(validatedData);
+        console.log('🎉 Device created successfully:', createdDevice);
 
         // Show success message
         setShowSuccess(true);
 
-        // Reset form after short delay
+        // Reset form after short delay and navigate back
         setTimeout(() => {
           form.reset();
           setShowSuccess(false);
-        }, 2000);
+          navigation.goBack();
+        }, 1500);
 
       } catch (error) {
-        console.error('Error creating device:', error);
-        Alert.alert(
-          'Error',
-          'Error al crear el dispositivo. Por favor, verifica los datos e intenta de nuevo.'
-        );
+        console.error('❌ Error creating device:', error);
+        
+        // Extract error message from Zod validation or Axios error
+        let errorMessage = 'Error al crear el dispositivo. Por favor, verifica los datos e intenta de nuevo.';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        }
+        
+        Alert.alert('Error', errorMessage);
       }
     },
   });

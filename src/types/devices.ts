@@ -15,6 +15,7 @@ export interface DeviceCreate {
   description?: string;
   version?: string;
   category: DeviceCategory;
+  user_id: string;
 }
 
 export interface DeviceUpdate {
