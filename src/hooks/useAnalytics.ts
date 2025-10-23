@@ -1,7 +1,7 @@
-import { useAnalyticsHealth, useMultiMetricReport } from '../lib/graphql/analytics-queries';
+import { useAnalyticsHealth, useMultiMetricReport } from '../lib/api/analytics-hooks';
 import { useMemo } from 'react';
 
-// Re-export analytics hooks from GraphQL
+// Re-export analytics hooks from REST API
 export { useAnalyticsHealth, useMultiMetricReport };
 
 // Hook para obtener métricas globales de todos los controladores
@@ -112,7 +112,7 @@ export const useSystemMetrics = () => {
 
 // Hook para estado de sensores (placeholder - needs proper implementation)
 export const useSensorHealth = () => {
-  // This would need a proper GraphQL query for sensor health
+  // This would need a proper REST API endpoint for sensor health
   // For now returning placeholder data
   return {
     data: [
@@ -127,7 +127,7 @@ export const useSensorHealth = () => {
 
 // Hook para alertas recientes (placeholder - needs proper implementation)
 export const useRecentAlerts = () => {
-  // This would need a proper GraphQL query for recent alerts
+  // This would need a proper REST API endpoint for recent alerts
   // For now returning empty array
   return {
     data: [],

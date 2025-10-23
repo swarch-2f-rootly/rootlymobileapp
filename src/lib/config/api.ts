@@ -7,9 +7,12 @@ const ENV: Record<string, string | undefined> = (globalThis as any) || {};
 
 export const API_CONFIG = {
   // API Gateway URL - single point of entry for all services
-  GATEWAY_URL: (ENV as any).API_GATEWAY_URL || 'http://192.168.1.10:8080',
+  // For Android emulator, use 10.0.2.2 to access host machine
+  GATEWAY_URL: (ENV as any).API_GATEWAY_URL || 'http://10.0.2.2:8080',
   // Direct Plant Management Service URL (used for binary/image endpoints)
-  PLANT_SERVICE_URL: (ENV as any).PLANT_SERVICE_URL || deriveServiceUrlFromGatewayPort('http://192.168.1.10:8080', 8003),
+  PLANT_SERVICE_URL: (ENV as any).PLANT_SERVICE_URL || deriveServiceUrlFromGatewayPort('http://10.0.2.2:8080', 8003),
+  // Direct Analytics Service URL - bypasses API Gateway (puerto 8000)
+  ANALYTICS_SERVICE_URL: (ENV as any).ANALYTICS_SERVICE_URL || 'http://10.0.2.2:8000',
 } as const;
 
 // Helper function to get the API Gateway URL
@@ -22,8 +25,13 @@ export const getPlantServiceUrl = () => {
   return API_CONFIG.PLANT_SERVICE_URL;
 };
 
-// GraphQL endpoint - CORRECTO: apunta a /api/v1/graphql
-export const GRAPHQL_ENDPOINT = `${API_CONFIG.GATEWAY_URL}/api/v1/graphql`;
+// Helper to get Analytics service base URL (bypasses gateway)
+export const getAnalyticsServiceUrl = () => {
+  return API_CONFIG.GATEWAY_URL;
+};
+
+// GraphQL endpoint - YA NO SE USA (migrado a REST HTTP)
+// export const GRAPHQL_ENDPOINT = `${API_CONFIG.GATEWAY_URL}/api/v1/graphql`;
 
 // API endpoints relative to gateway
 export const API_ENDPOINTS = {
@@ -55,11 +63,11 @@ function deriveServiceUrlFromGatewayPort(gatewayUrl: string, port: number): stri
   try {
     // Parse minimally to avoid depending on URL typings
     const match = gatewayUrl.match(/^(https?:)\/\/(.*?)(?::(\d+))?(\/|$)/i);
-    if (!match) return `http://192.168.1.10:${port}`;
+    if (!match) return `http://10.0.2.2:${port}`;
     const protocol = match[1];
     const host = match[2];
     return `${protocol}//${host}:${port}`;
   } catch {
-    return `http://192.168.1.10:${port}`;
+    return `http://10.0.2.2:${port}`;
   }
 }

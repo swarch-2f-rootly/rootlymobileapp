@@ -3,6 +3,15 @@ import { getApiUrl } from '../config/api';
 import { useAuthStore } from '../../stores/authStore';
 import { logApiRequest, logApiResponse, logApiError } from '../config/reactotron';
 
+// Extend AxiosRequestConfig to include metadata
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    metadata?: {
+      startTime: number;
+    };
+  }
+}
+
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
   baseURL: getApiUrl(),

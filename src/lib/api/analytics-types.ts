@@ -1,9 +1,36 @@
-// Analytics-specific types (from frontend documentation)
+// Analytics-specific types
+
+// Exact structure from the API response
+export interface Metric {
+  metric_name: string;
+  value: number;
+  unit: string;
+  calculated_at: string;
+  controller_id: string;
+  description: string | null;
+}
+
+export interface FilterApplied {
+  start_time: string | null;
+  end_time: string | null;
+  limit: number | null;
+}
+
+// Main response from /api/v1/analytics/multi-report
+export interface MultiMetricReportResponse {
+  controller_id: string;
+  metrics: Metric[];
+  generated_at: string;
+  data_points_count: number;
+  filters_applied: FilterApplied;
+}
+
+// Legacy interfaces for backwards compatibility (but will map to new structure)
 export interface AnalyticsReport {
   controllerId: string;
   generatedAt: string;
   dataPointsCount: number;
-  metrics: AnalyticsMetric[];
+  metrics: Metric[];
 }
 
 export interface AnalyticsMetric {
@@ -12,7 +39,7 @@ export interface AnalyticsMetric {
   unit: string;
   calculatedAt: string;
   controllerId: string;
-  description: string;
+  description: string | null;
 }
 
 export interface AnalyticsHealth {
@@ -61,28 +88,12 @@ export interface TrendAnalysis {
   dataPoints: TrendDataPoint[];
 }
 
-// Response types for analytics queries
-export interface SupportedMetricsResponse {
-  getSupportedMetrics: string[];
+export interface LatestMeasurement {
+  controller_id: string;
+  timestamp: string;
+  temperature?: number;
+  air_humidity?: number;
+  soil_humidity?: number;
+  light_intensity?: number;
 }
 
-export interface AnalyticsHealthResponse {
-  getAnalyticsHealth: AnalyticsHealth;
-}
-
-export interface SingleMetricReportResponse {
-  getSingleMetricReport: AnalyticsReport;
-}
-
-export interface MultiMetricReportResponse {
-  getMultiMetricReport: {
-    generatedAt: string;
-    totalControllers: number;
-    totalMetrics: number;
-    reports: AnalyticsReport[];
-  };
-}
-
-export interface TrendAnalysisResponse {
-  getTrendAnalysis: TrendAnalysis;
-}

@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { usePlant, useDeletePlant, usePlantDevices } from '../../../hooks/usePlants';
-import { usePlantChartData, useLatestMeasurement } from '../../../lib/graphql/hooks';
+import { usePlantChartData, useLatestMeasurement } from '../../../lib/api/analytics-hooks';
 import { Card } from '../../../components/ui/Card';
 import { Loading } from '../../../components/ui/Loading';
 import { Button } from '../../../components/ui/Button';
@@ -61,7 +61,7 @@ const PlantDetailScreen: React.FC = () => {
     hasControllerId: !!controllerId,
   });
 
-  // Obtener datos analíticos desde GraphQL usando el controllerId del microcontrolador
+  // Obtener datos analíticos desde REST API usando el controllerId del microcontrolador
   const {
     currentData: analyticsData,
     // isLoading: analyticsLoading, // Not used
@@ -137,11 +137,11 @@ const PlantDetailScreen: React.FC = () => {
     if (controllerId) {
       // En modo monitoreo, mostrar el estado de la última medición
       if (isMonitoring) {
-        if (latestMeasurementData?.measurement) {
-          const status = latestMeasurementData.status;
-          const ageMinutes = latestMeasurementData.dataAgeMinutes;
-          const metricName = latestMeasurementData.measurement.metricName;
-          return `📡 ${controllerId} - ${status} (${metricName}, hace ${ageMinutes} min)`;
+        if (latestMeasurementData) {
+          const timestamp = new Date(latestMeasurementData.timestamp);
+          const ageMinutes = Math.floor((Date.now() - timestamp.getTime()) / (1000 * 60));
+          const status = ageMinutes < 5 ? 'online' : 'delayed';
+          return `📡 ${controllerId} - ${status} (hace ${ageMinutes} min)`;
         }
         if (latestError) {
           return `⚠️ ${controllerId} - Error obteniendo datos`;
@@ -214,61 +214,36 @@ const PlantDetailScreen: React.FC = () => {
     }
   }, [isMonitoring]);
 
-  // Acumular métricas recibidas del polling según el metricName
+  // Acumular métricas recibidas del polling (REST trae todas las métricas de una vez)
   useEffect(() => {
-    if (!isMonitoring || !latestMeasurementData?.measurement) return;
+    if (!isMonitoring || !latestMeasurementData) return;
 
-    const measurement = latestMeasurementData.measurement;
+    console.log('📊 [PlantDetailScreen] Procesando medición REST:', latestMeasurementData);
 
-    // Actualizar tanto el estado acumulativo como currentData
-    setRealtimeMetrics(prev => {
-      const updates = { ...prev };
+    // REST API trae TODAS las métricas de una vez, no una por una
+    const updates = {
+      temperature: latestMeasurementData.temperature,
+      airHumidity: latestMeasurementData.air_humidity,
+      soilHumidity: latestMeasurementData.soil_humidity,
+      lightLevel: latestMeasurementData.light_intensity,
+    };
 
-      switch (measurement.metricName) {
-        case 'temperature':
-          updates.temperature = measurement.value;
-          break;
-        case 'air_humidity':
-          updates.airHumidity = measurement.value;
-          break;
-        case 'soil_humidity':
-          updates.soilHumidity = measurement.value;
-          break;
-        case 'light_intensity':
-          updates.lightLevel = measurement.value;
-          break;
-      }
+    // Actualizar métricas en tiempo real
+    setRealtimeMetrics(updates);
 
-      return updates;
-    });
-
-    // Actualizar currentData directamente aquí
-    setCurrentData(prev => {
-      const updates: Partial<typeof prev> = {
-        timestamp: new Date().toLocaleTimeString('es-ES'),
-        date: new Date().toLocaleDateString('es-ES')
-      };
-
-      switch (measurement.metricName) {
-        case 'temperature':
-          updates.temperature = measurement.value;
-          break;
-        case 'air_humidity':
-          updates.airHumidity = measurement.value;
-          break;
-        case 'soil_humidity':
-          updates.soilHumidity = measurement.value;
-          break;
-        case 'light_intensity':
-          updates.lightLevel = measurement.value;
-          break;
-      }
-
-      return { ...prev, ...updates };
-    });
+    // Actualizar currentData
+    setCurrentData(prev => ({
+      ...prev,
+      temperature: updates.temperature ?? prev.temperature,
+      airHumidity: updates.airHumidity ?? prev.airHumidity,
+      soilHumidity: updates.soilHumidity ?? prev.soilHumidity,
+      lightLevel: updates.lightLevel ?? prev.lightLevel,
+      timestamp: new Date(latestMeasurementData.timestamp).toLocaleTimeString('es-ES'),
+      date: new Date(latestMeasurementData.timestamp).toLocaleDateString('es-ES'),
+    }));
   }, [
     isMonitoring,
-    latestMeasurementData?.measurement
+    latestMeasurementData
   ]);
 
   useEffect(() => {

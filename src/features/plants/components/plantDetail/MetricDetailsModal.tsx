@@ -11,11 +11,11 @@ import {
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 interface MetricData {
-  metricName: string;
+  metric_name: string;
   value: number;
   unit: string;
-  calculatedAt: string;
-  controllerId: string;
+  calculated_at: string;
+  controller_id: string;
   description?: string | null;
 }
 
@@ -36,15 +36,15 @@ const MetricDetailsModal: React.FC<MetricDetailsModalProps> = ({
   title,
   icon,
 }) => {
-  // Filtrar métricas por tipo
-  const relevantMetrics = metrics.filter(m => m.metricName.includes(metricType));
+  // Filtrar métricas por tipo (usando metric_name con snake_case)
+  const relevantMetrics = metrics.filter(m => m.metric_name?.includes(metricType));
 
-  // Extraer métricas específicas
-  const average = relevantMetrics.find(m => m.metricName.includes('average'));
-  const minimum = relevantMetrics.find(m => m.metricName.includes('minimum'));
-  const maximum = relevantMetrics.find(m => m.metricName.includes('maximum'));
-  const stdDev = relevantMetrics.find(m => m.metricName.includes('std_deviation'));
-  const trend = relevantMetrics.find(m => m.metricName.includes('trend'));
+  // Extraer métricas específicas (usando metric_name)
+  const average = relevantMetrics.find(m => m.metric_name?.includes('average'));
+  const minimum = relevantMetrics.find(m => m.metric_name?.includes('minimum'));
+  const maximum = relevantMetrics.find(m => m.metric_name?.includes('maximum'));
+  const stdDev = relevantMetrics.find(m => m.metric_name?.includes('std_deviation'));
+  const trend = relevantMetrics.find(m => m.metric_name?.includes('trend'));
 
   const getMetricColor = (type: string) => {
     switch (type) {
@@ -186,14 +186,14 @@ const MetricDetailsModal: React.FC<MetricDetailsModalProps> = ({
                 <View key={index} style={styles.metricItem}>
                   <View style={styles.metricItemContent}>
                     <Text style={styles.metricItemName}>
-                      {metric.metricName.replace(/_/g, ' ')}
+                      {metric.metric_name.replace(/_/g, ' ')}
                     </Text>
                     <Text style={styles.metricItemValue}>
                       {formatValue(metric.value, metric.unit)}
                     </Text>
                   </View>
                   <Text style={styles.metricItemDate}>
-                    {new Date(metric.calculatedAt).toLocaleString('es-ES', {
+                    {new Date(metric.calculated_at).toLocaleString('es-ES', {
                       year: 'numeric',
                       month: 'short',
                       day: 'numeric',

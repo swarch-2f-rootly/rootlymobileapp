@@ -9,9 +9,7 @@ import {
   SafeAreaProvider,
 } from 'react-native-safe-area-context';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ApolloProvider } from '@apollo/client/react';
 import { queryClient } from './src/lib/config/queryClient';
-import { apolloClient } from './src/lib/graphql/client';
 import { useAuthStore } from './src/stores/authStore';
 import AppNavigator from './src/lib/navigation/AppNavigator';
 
@@ -31,12 +29,10 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ApolloProvider client={apolloClient}>
-        <SafeAreaProvider>
-          <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-          <AppNavigator />
-        </SafeAreaProvider>
-      </ApolloProvider>
+      <SafeAreaProvider>
+        <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
+        <AppNavigator />
+      </SafeAreaProvider>
     </QueryClientProvider>
   );
 }
