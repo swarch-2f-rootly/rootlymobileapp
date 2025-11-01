@@ -138,10 +138,9 @@ const PlantDetailScreen: React.FC = () => {
       // En modo monitoreo, mostrar el estado de la última medición
       if (isMonitoring) {
         if (latestMeasurementData) {
-          const timestamp = new Date(latestMeasurementData.timestamp);
-          const ageMinutes = Math.floor((Date.now() - timestamp.getTime()) / (1000 * 60));
+          const ageMinutes = latestMeasurementData.data_age_minutes;
           const status = ageMinutes < 5 ? 'online' : 'delayed';
-          return `📡 ${controllerId} - ${status} (hace ${ageMinutes} min)`;
+          return `📡 ${controllerId} - ${status} (edad: ${ageMinutes.toFixed(2)} min)`;
         }
         if (latestError) {
           return `⚠️ ${controllerId} - Error obteniendo datos`;
@@ -191,6 +190,22 @@ const PlantDetailScreen: React.FC = () => {
     }));
   }, [sensorStatus]);
 
+  // Resetear datos cuando cambia el modo de monitoreo
+  useEffect(() => {
+    if (isMonitoring) {
+      // Al activar monitoreo, limpiar datos anteriores para mostrar solo en tiempo real
+      console.log('🔄 [PlantDetailScreen] Modo monitoreo activado - limpiando datos anteriores');
+      setCurrentData(prev => ({
+        ...prev,
+        temperature: 0,
+        airHumidity: 0,
+        soilHumidity: 0,
+        lightLevel: 0,
+        timestamp: "",
+      }));
+    }
+  }, [isMonitoring]);
+
   // Actualizar con datos analíticos (solo valores primitivos como dependencias)
   useEffect(() => {
     if (!isMonitoring && analyticsData) {
@@ -206,6 +221,41 @@ const PlantDetailScreen: React.FC = () => {
     isMonitoring,
     analyticsData
   ]);
+
+  // Actualizar con datos en tiempo real del monitoreo
+  useEffect(() => {
+    if (isMonitoring && latestMeasurementData?.measurement) {
+      const measurement = latestMeasurementData.measurement;
+      const metricName = measurement.metric_name;
+      const value = measurement.value;
+
+      console.log('📡 [PlantDetailScreen] Real-time update:', {
+        metric: metricName,
+        value,
+        unit: measurement.unit,
+        age: latestMeasurementData.data_age_minutes
+      });
+
+      setCurrentData(prev => {
+        const updated = { ...prev };
+
+        // Mapear metric_name a los campos de currentData
+        if (metricName.includes('temperature')) {
+          updated.temperature = value;
+        } else if (metricName.includes('air_humidity')) {
+          updated.airHumidity = value;
+        } else if (metricName.includes('soil_humidity')) {
+          updated.soilHumidity = value;
+        } else if (metricName.includes('light_intensity')) {
+          updated.lightLevel = value;
+        }
+
+        updated.timestamp = measurement.calculated_at;
+
+        return updated;
+      });
+    }
+  }, [isMonitoring, latestMeasurementData]);
 
   // Limpiar métricas acumuladas cuando se detiene el monitoreo
   useEffect(() => {
@@ -396,7 +446,7 @@ const PlantDetailScreen: React.FC = () => {
                 value={isMonitoring ? currentData.temperature : (getMetricAverage('temperature') || currentData.temperature)}
                 unit="°C"
                 color={getStatusColor(currentData.temperature, 'temperature')}
-                hasData={isMonitoring ? (realtimeMetrics.temperature !== undefined) : hasTemperature}
+                hasData={isMonitoring ? (currentData.temperature > 0) : hasTemperature}
                 onPress={() => setOpenModal('temperature')}
               />
               <SensorDataCard
@@ -406,7 +456,7 @@ const PlantDetailScreen: React.FC = () => {
                 value={isMonitoring ? currentData.soilHumidity : (getMetricAverage('soil_humidity') || currentData.soilHumidity)}
                 unit="%"
                 color={getStatusColor(currentData.soilHumidity, 'humidity')}
-                hasData={isMonitoring ? (realtimeMetrics.soilHumidity !== undefined) : hasSoilHumidity}
+                hasData={isMonitoring ? (currentData.soilHumidity > 0) : hasSoilHumidity}
                 onPress={() => setOpenModal('soil_humidity')}
               />
               <SensorDataCard
@@ -416,7 +466,7 @@ const PlantDetailScreen: React.FC = () => {
                 value={isMonitoring ? currentData.airHumidity : (getMetricAverage('air_humidity') || currentData.airHumidity)}
                 unit="%"
                 color={getStatusColor(currentData.airHumidity, 'humidity')}
-                hasData={isMonitoring ? (realtimeMetrics.airHumidity !== undefined) : hasHumidity}
+                hasData={isMonitoring ? (currentData.airHumidity > 0) : hasHumidity}
                 onPress={() => setOpenModal('air_humidity')}
               />
               <SensorDataCard
@@ -426,7 +476,7 @@ const PlantDetailScreen: React.FC = () => {
                 value={isMonitoring ? currentData.lightLevel : (getMetricAverage('light_intensity') || currentData.lightLevel)}
                 unit=" lux"
                 color={getStatusColor(currentData.lightLevel, 'light')}
-                hasData={isMonitoring ? (realtimeMetrics.lightLevel !== undefined) : hasLight}
+                hasData={isMonitoring ? (currentData.lightLevel > 0) : hasLight}
                 onPress={() => setOpenModal('light_intensity')}
               />
             </View>

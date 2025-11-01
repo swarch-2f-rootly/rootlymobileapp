@@ -90,10 +90,16 @@ export interface TrendAnalysis {
 
 export interface LatestMeasurement {
   controller_id: string;
-  timestamp: string;
-  temperature?: number;
-  air_humidity?: number;
-  soil_humidity?: number;
-  light_intensity?: number;
+  measurement: {
+    metric_name: string;
+    value: number;
+    unit: string;
+    calculated_at: string;
+    controller_id: string;
+    description: string | null;
+  };
+  status: string;
+  last_checked: string;
+  data_age_minutes: number;
 }
 

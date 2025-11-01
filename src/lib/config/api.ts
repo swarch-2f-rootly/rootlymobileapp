@@ -8,11 +8,9 @@ const ENV: Record<string, string | undefined> = (globalThis as any) || {};
 export const API_CONFIG = {
   // API Gateway URL - single point of entry for all services
   // For Android emulator, use 10.0.2.2 to access host machine
-  GATEWAY_URL: (ENV as any).API_GATEWAY_URL || 'http://10.0.2.2:8080',
+  GATEWAY_URL: (ENV as any).API_GATEWAY_URL || 'http://10.156.62.6:8080',
   // Direct Plant Management Service URL (used for binary/image endpoints)
-  PLANT_SERVICE_URL: (ENV as any).PLANT_SERVICE_URL || deriveServiceUrlFromGatewayPort('http://10.0.2.2:8080', 8003),
-  // Direct Analytics Service URL - bypasses API Gateway (puerto 8000)
-  ANALYTICS_SERVICE_URL: (ENV as any).ANALYTICS_SERVICE_URL || 'http://10.0.2.2:8000',
+  PLANT_SERVICE_URL: (ENV as any).PLANT_SERVICE_URL || deriveServiceUrlFromGatewayPort('http://10.156.62.6:8080', 8003),
 } as const;
 
 // Helper function to get the API Gateway URL
